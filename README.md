@@ -1,0 +1,84 @@
+# Movie Catalog API
+
+A comprehensive API for managing a movie catalog with actors, genres, and ratings.
+
+## Project Overview
+
+This project is a Movie Catalog application that uses a combination of SQL Server and PostgreSQL databases, along with RabbitMQ for messaging. The application is structured using a CQRS pattern and utilizes ASP.NET Core for the web API.
+
+## Features
+
+- **Movies Management**: Create, retrieve, update, and delete movies
+- **Actors Management**: Create, retrieve, update, and delete actors
+- **Genres Management**: Create, retrieve, update, and delete genres
+- **Ratings**: Add and update movie ratings
+- **Search**: Search for movies by title or genre
+- **Pagination**: Paginated results for better performance
+
+## Architecture
+
+- **CQRS Pattern**: Command Query Responsibility Segregation for better separation of concerns
+- **Event Sourcing**: Using Marten for event sourcing (temporarily disabled)
+- **Message Queue**: RabbitMQ for asynchronous processing (temporarily disabled)
+- **Multiple Databases**: 
+  - SQL Server for write operations
+  - PostgreSQL for read operations (temporarily disabled)
+
+## Tech Stack
+
+- ASP.NET Core 8.0
+- Entity Framework Core
+- Marten (for event sourcing)
+- SQL Server (Docker)
+- PostgreSQL (Docker)
+- RabbitMQ (Docker)
+- Swagger for API documentation
+
+## Getting Started
+
+### Prerequisites
+
+- .NET 8.0 SDK
+- Docker Desktop
+- Git
+
+### Setup
+
+1. Clone the repository:
+   ```
+   git clone <repository-url>
+   cd MovieCatalog
+   ```
+
+2. Start the required Docker containers:
+   ```
+   docker-compose up -d
+   ```
+
+3. Run the application:
+   ```
+   dotnet run --project MovieCatalog.Api/MovieCatalog.Api.csproj
+   ```
+
+4. Access the API:
+   - API Endpoints: http://localhost:5251/api
+   - Swagger Documentation: http://localhost:5251/swagger/index.html
+
+## Sample Data
+
+The application comes with pre-seeded sample data including:
+
+- **Movies**: The Shawshank Redemption, The Godfather, Inception, Forrest Gump, The Dark Knight
+- **Actors**: Tom Hanks, Meryl Streep, Leonardo DiCaprio, and more
+- **Genres**: Action, Comedy, Drama, Science Fiction, Horror, Romance, Thriller
+
+## Project Structure
+
+- **MovieCatalog.Api**: API controllers and DTOs
+- **MovieCatalog.Application**: Application services, commands, and queries
+- **MovieCatalog.Domain**: Domain entities and business logic
+- **MovieCatalog.Infrastructure**: Infrastructure concerns (databases, messaging, etc.)
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

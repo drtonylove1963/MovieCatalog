@@ -14,15 +14,16 @@ This project is a Movie Catalog application that uses a combination of SQL Serve
 - **Ratings**: Add and update movie ratings
 - **Search**: Search for movies by title or genre
 - **Pagination**: Paginated results for better performance
+- **Event Sourcing**: Track all changes to entities using event sourcing with Marten
 
 ## Architecture
 
 - **CQRS Pattern**: Command Query Responsibility Segregation for better separation of concerns
-- **Event Sourcing**: Using Marten for event sourcing (temporarily disabled)
+- **Event Sourcing**: Using Marten for event sourcing with resilient error handling
 - **Message Queue**: RabbitMQ for asynchronous processing (temporarily disabled)
 - **Multiple Databases**: 
-  - SQL Server for write operations
-  - PostgreSQL for read operations (temporarily disabled)
+  - SQL Server for write operations and temporary read operations
+  - PostgreSQL for event store and future read operations
 
 ## Tech Stack
 
@@ -78,6 +79,15 @@ The application comes with pre-seeded sample data including:
 - **MovieCatalog.Application**: Application services, commands, and queries
 - **MovieCatalog.Domain**: Domain entities and business logic
 - **MovieCatalog.Infrastructure**: Infrastructure concerns (databases, messaging, etc.)
+
+## Resilient Design
+
+The application implements resilient error handling for database connections:
+
+- **Graceful Degradation**: Falls back to SQL Server for read operations when PostgreSQL is unavailable
+- **Error Handling**: Comprehensive error handling in the EventStoreService
+- **Command Timeout**: Configurable command timeout to prevent long waits during connection attempts
+- **Auto-Create Schema**: Automatic schema creation for PostgreSQL when the database becomes available
 
 ## License
 

@@ -28,16 +28,17 @@ This separation allows for optimized data access patterns and improved scalabili
 
 ### Event Sourcing
 
-The system is designed with event sourcing capabilities (temporarily disabled):
-- Events are stored as the source of truth
+The system implements event sourcing with Marten:
+- Events are stored as the source of truth in PostgreSQL
 - Domain events are raised when state changes occur
 - Projections create read models from events
+- Resilient error handling ensures application stability
 
 ### Database Strategy
 
 The application uses a dual-database approach:
-- **SQL Server** - Used for write operations (command side)
-- **PostgreSQL** - Used for read operations via Marten (query side, temporarily disabled)
+- **SQL Server** - Used for write operations (command side) and temporary read operations
+- **PostgreSQL** - Used for event store and future read operations with Marten
 
 ### Messaging
 
@@ -121,6 +122,7 @@ Repositories provide an abstraction over data access:
 - ActorRepository (write)
 - GenreRepository (write)
 - MovieReadRepository (read)
+- TempMovieReadRepository (fallback read repository using SQL Server)
 
 ### Database Contexts
 
@@ -129,8 +131,9 @@ Repositories provide an abstraction over data access:
    - Handles write operations
 
 2. **Marten Document Store**
-   - PostgreSQL-based document store (temporarily disabled)
-   - Handles read operations and event sourcing
+   - PostgreSQL-based document store and event store
+   - Handles event sourcing with resilient error handling
+   - Configured with command timeout and auto-create schema options
 
 ### Event Handlers
 
@@ -174,6 +177,28 @@ Data Transfer Objects define the API contract:
 - ActorDto
 - GenreDto
 
+## Resilient Design
+
+The application implements resilient error handling for database connections:
+
+1. **Graceful Degradation**
+   - Falls back to SQL Server for read operations when PostgreSQL is unavailable
+   - TempMovieReadRepository provides SQL Server-based implementation of IMovieReadRepository
+
+2. **Error Handling**
+   - Comprehensive error handling in the EventStoreService
+   - Prevents application crashes when PostgreSQL connection fails
+   - Detailed error logging for troubleshooting
+
+3. **Database Configuration**
+   - Command timeout of 30 seconds to prevent long waits during connection attempts
+   - Auto-create schema objects set to ensure database schema is created when available
+   - Optimized artifact workflow and lightweight sessions for better performance
+
+4. **Testing Tools**
+   - TestPostgresConnection utility for diagnosing PostgreSQL connection issues
+   - Multiple connection string formats for troubleshooting
+
 ## Technologies Used
 
 - **.NET 8.0** - Latest version of the .NET platform
@@ -207,54 +232,30 @@ Data Transfer Objects define the API contract:
    dotnet run --project MovieCatalog.Api/MovieCatalog.Api.csproj
    ```
 4. Access the API:
-   - API Endpoints: http://localhost:5251/api
-   - Swagger Documentation: http://localhost:5251/swagger/index.html
+   - API: http://localhost:5251/api
+   - Swagger: http://localhost:5251/swagger
 
-## Project Structure
+## Troubleshooting
 
-```
-MovieCatalog/
-├── MovieCatalog.Api/              # API Layer
-│   ├── Controllers/               # API Controllers
-│   ├── Dtos/                      # Data Transfer Objects
-│   └── Program.cs                 # Application entry point
-├── MovieCatalog.Application/      # Application Layer
-│   ├── Common/                    # Cross-cutting concerns
-│   │   ├── Behaviors/             # Pipeline behaviors
-│   │   ├── Interfaces/            # Application interfaces
-│   │   └── Models/                # Application models
-│   ├── Movies/                    # Movie feature
-│   │   ├── Commands/              # Write operations
-│   │   └── Queries/               # Read operations
-│   └── DependencyInjection.cs     # Application services registration
-├── MovieCatalog.Domain/           # Domain Layer
-│   ├── Aggregates/                # Domain aggregates
-│   │   ├── ActorAggregate/        # Actor entity and events
-│   │   ├── GenreAggregate/        # Genre entity and events
-│   │   └── MovieAggregate/        # Movie aggregate and events
-│   ├── Common/                    # Domain base classes
-│   └── Repositories/              # Repository interfaces
-└── MovieCatalog.Infrastructure/   # Infrastructure Layer
-    ├── EventHandlers/             # Domain event handlers
-    ├── Persistence/               # Database contexts
-    ├── Repositories/              # Repository implementations
-    └── DependencyInjection.cs     # Infrastructure services registration
-```
+### PostgreSQL Connection Issues
 
-## Current Status
+If encountering PostgreSQL connection issues:
 
-The project is currently in development with some features temporarily disabled for troubleshooting:
-- Event sourcing with Marten is disabled
-- RabbitMQ messaging is disabled
-- PostgreSQL read database is disabled
+1. Verify Docker container is running:
+   ```
+   docker ps | findstr postgres
+   ```
 
-The core functionality using SQL Server for both read and write operations is working.
+2. Check PostgreSQL logs:
+   ```
+   docker logs movie-catalog-postgres
+   ```
 
-## Future Enhancements
+3. Test connection using the TestPostgresConnection utility:
+   ```
+   dotnet run --project TestPostgresConnection/TestPostgresConnection.csproj
+   ```
 
-- Re-enable event sourcing with Marten
-- Re-enable asynchronous processing with RabbitMQ
-- Add authentication and authorization
-- Implement more advanced search and filtering capabilities
-- Add caching for improved performance
-- Develop a frontend application
+4. Verify connection string in appsettings.json matches Docker container configuration
+
+The application will continue to function using SQL Server for read operations even if PostgreSQL is unavailable.

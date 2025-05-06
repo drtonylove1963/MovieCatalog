@@ -4,7 +4,6 @@ using Microsoft.Extensions.Hosting;
 using System.Text.Json.Serialization;
 using MovieCatalog.Application;
 using MovieCatalog.Infrastructure;
-using MovieCatalog.Infrastructure.Services;
 using MovieCatalog.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
@@ -31,9 +30,6 @@ builder.Services.AddApplication();
 
 // Add infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Add the event store background service - TEMPORARILY DISABLED FOR TROUBLESHOOTING
-// builder.Services.AddHostedService<EventStoreService>();
 
 var app = builder.Build();
 
@@ -189,9 +185,6 @@ if (app.Environment.IsDevelopment())
         }
     }
 }
-
-// TEMPORARILY DISABLED FOR TROUBLESHOOTING - HTTPS redirection causing issues
-// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 

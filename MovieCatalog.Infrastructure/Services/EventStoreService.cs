@@ -27,33 +27,63 @@ public class EventStoreService : BackgroundService
     {
         _logger.LogInformation("Event Store Service is starting...");
 
-        // This service will use a scoped DocumentStore to start the daemon
-        // This ensures that the daemon is running for the lifetime of the application
-        using var scope = _serviceProvider.CreateScope();
-        var store = scope.ServiceProvider.GetRequiredService<IDocumentStore>();
-
-        await store.Storage.ApplyAllConfiguredChangesToDatabaseAsync();
-
-        // Get the daemon and start it
-        var daemon = await store.BuildProjectionDaemonAsync();
-        
-        await daemon.StartAllAsync();
-        
-        _logger.LogInformation("Event Store Service started successfully");
-
-        // Keep the service running until the application is stopped
         try
         {
-            await Task.Delay(Timeout.Infinite, stoppingToken);
+            // This service will use a scoped DocumentStore to start the daemon
+            // This ensures that the daemon is running for the lifetime of the application
+            using var scope = _serviceProvider.CreateScope();
+            var store = scope.ServiceProvider.GetRequiredService<IDocumentStore>();
+
+            // Apply database changes with a timeout
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, stoppingToken);
+            
+            try
+            {
+                await store.Storage.ApplyAllConfiguredChangesToDatabaseAsync();
+                _logger.LogInformation("Database schema applied successfully");
+            }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+            {
+                _logger.LogWarning("Database schema application timed out after 30 seconds");
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error applying database schema changes");
+                return;
+            }
+
+            // Get the daemon and start it
+            try
+            {
+                var daemon = await store.BuildProjectionDaemonAsync();
+                await daemon.StartAllAsync();
+                _logger.LogInformation("Event Store Service started successfully");
+
+                // Keep the service running until the application is stopped
+                try
+                {
+                    await Task.Delay(Timeout.Infinite, stoppingToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Normal termination when the application is shutting down
+                    _logger.LogInformation("Event Store Service is shutting down...");
+                    
+                    await daemon.StopAllAsync();
+                    
+                    _logger.LogInformation("Event Store Service stopped successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting or running the event daemon");
+            }
         }
-        catch (TaskCanceledException)
+        catch (Exception ex)
         {
-            // Normal termination when the application is shutting down
-            _logger.LogInformation("Event Store Service is shutting down...");
-            
-            await daemon.StopAllAsync();
-            
-            _logger.LogInformation("Event Store Service stopped successfully");
+            _logger.LogError(ex, "Error in Event Store Service");
         }
     }
 }

@@ -20,19 +20,16 @@ namespace MovieCatalog.Infrastructure.Repositories;
 public class MovieRepository : IMovieRepository
 {
     private readonly WriteDbContext _dbContext;
-    // TEMPORARILY DISABLED FOR TROUBLESHOOTING
-    // private readonly IDocumentSession _documentSession;
+    private readonly IDocumentSession _documentSession;
 
-    // TEMPORARY CONSTRUCTOR FOR TROUBLESHOOTING
-    public MovieRepository(WriteDbContext dbContext)
+    public MovieRepository(WriteDbContext dbContext, IDocumentSession documentSession)
     {
         _dbContext = dbContext;
-        // _documentSession = documentSession;
+        _documentSession = documentSession;
     }
 
     public async Task<Movie?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // TEMPORARILY MODIFIED FOR TROUBLESHOOTING
         // Use EF Core to fetch the movie from SQL Server
         var movieEntity = await EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
             _dbContext.Movies
@@ -92,14 +89,12 @@ public class MovieRepository : IMovieRepository
 
         await _dbContext.Movies.AddAsync(movieEntity, cancellationToken);
 
-        // TEMPORARILY DISABLED FOR TROUBLESHOOTING
         // Append events to Marten (Event Store)
-        // _documentSession.Events.Append(movie.Id, movie.DomainEvents);
+        _documentSession.Events.Append(movie.Id, movie.DomainEvents);
 
         // Save SQL Server operation
         await _dbContext.SaveChangesAsync(cancellationToken);
-        // TEMPORARILY DISABLED FOR TROUBLESHOOTING
-        // await _documentSession.SaveChangesAsync(cancellationToken);
+        await _documentSession.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(Movie movie, CancellationToken cancellationToken = default)
@@ -187,14 +182,12 @@ public class MovieRepository : IMovieRepository
             }
         }
 
-        // TEMPORARILY DISABLED FOR TROUBLESHOOTING
         // Append events to Marten (Event Store)
-        // _documentSession.Events.Append(movie.Id, movie.DomainEvents);
+        _documentSession.Events.Append(movie.Id, movie.DomainEvents);
 
         // Save SQL Server operation
         await _dbContext.SaveChangesAsync(cancellationToken);
-        // TEMPORARILY DISABLED FOR TROUBLESHOOTING
-        // await _documentSession.SaveChangesAsync(cancellationToken);
+        await _documentSession.SaveChangesAsync(cancellationToken);
 
         // Clear domain events after saving
         movie.ClearDomainEvents();

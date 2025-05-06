@@ -65,6 +65,32 @@ This project is a Movie Catalog application that uses a combination of SQL Serve
    - API Endpoints: http://localhost:5251/api
    - Swagger Documentation: http://localhost:5251/swagger/index.html
 
+### Database Access
+
+#### PostgreSQL
+
+- **Connection Details**:
+  - Host: `localhost` (from host machine) or `movie-catalog-postgres` (from Docker network)
+  - Port: `5432`
+  - Database: `movie_catalog`
+  - Username: `postgres`
+  - Password: `Password123!`
+
+- **PgAdmin Access**:
+  - URL: http://localhost:5050
+  - Login: `admin@moviedb.com`
+  - Password: `Password123!`
+  - To connect to PostgreSQL in pgAdmin, use the server name `movie-catalog-postgres`
+
+#### SQL Server
+
+- **Connection Details**:
+  - Host: `127.0.0.1`
+  - Port: `1433`
+  - Database: `MovieCatalog`
+  - Username: `sa`
+  - Password: `Password123!`
+
 ## Sample Data
 
 The application comes with pre-seeded sample data including:
@@ -90,6 +116,18 @@ The application implements resilient error handling for database connections:
 - **Command Timeout**: Configurable command timeout to prevent long waits during connection attempts
 - **Auto-Create Schema**: Automatic schema creation for PostgreSQL when the database becomes available
 - **Continuous Operation**: Application continues to function with full capabilities even when PostgreSQL is unavailable
+
+### PostgreSQL Schema Structure
+
+The event sourcing system uses the following PostgreSQL schema structure:
+
+- **Schema**: `movie_catalog`
+- **Tables**:
+  - `mt_events`: Stores all domain events with their data in JSONB format
+  - `mt_streams`: Tracks event streams for aggregates and their versions
+  - `mt_doc_movie_read_model`: Stores the projected read models for movies
+
+This schema is automatically created when the application starts, or can be manually created if needed.
 
 ## License
 

@@ -184,18 +184,28 @@ The application implements resilient error handling for database connections:
 1. **Graceful Degradation**
    - Falls back to SQL Server for read operations when PostgreSQL is unavailable
    - TempMovieReadRepository provides SQL Server-based implementation of IMovieReadRepository
+   - Application continues to function with full capabilities even when PostgreSQL is unavailable
 
-2. **Error Handling**
-   - Comprehensive error handling in the EventStoreService
+2. **Enhanced Error Handling**
+   - Comprehensive error handling in the EventStoreService with retry logic
+   - Specific exception handling for PostgreSQL errors
    - Prevents application crashes when PostgreSQL connection fails
    - Detailed error logging for troubleshooting
+   - Graceful degradation to continue application execution without event store functionality
 
-3. **Database Configuration**
+3. **Retry Mechanism**
+   - Configurable maximum retry attempts (default: 5)
+   - Configurable delay between retries (default: 5 seconds)
+   - Intelligent backoff strategy for connection attempts
+   - Clear logging of retry attempts for monitoring
+
+4. **Database Configuration**
    - Command timeout of 30 seconds to prevent long waits during connection attempts
    - Auto-create schema objects set to ensure database schema is created when available
    - Optimized artifact workflow and lightweight sessions for better performance
+   - Resilient connection string configuration
 
-4. **Testing Tools**
+5. **Testing Tools**
    - TestPostgresConnection utility for diagnosing PostgreSQL connection issues
    - Multiple connection string formats for troubleshooting
 

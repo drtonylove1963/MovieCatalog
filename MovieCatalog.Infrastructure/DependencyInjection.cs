@@ -71,7 +71,7 @@ public static class DependencyInjection
         // until PostgreSQL connection issues are resolved
         services.AddScoped<IMovieReadRepository, TempMovieReadRepository>();
         
-        // Register the EventStoreService with a conditional check
+        // Register the EventStoreService
         services.AddHostedService<EventStoreService>();
 
         return services;

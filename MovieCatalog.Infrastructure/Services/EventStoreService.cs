@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Marten;
 using Marten.Events.Daemon;
+using Npgsql;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,8 @@ public class EventStoreService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<EventStoreService> _logger;
+    private const int MaxRetryAttempts = 5;
+    private const int RetryDelayMilliseconds = 5000;
 
     public EventStoreService(
         IServiceProvider serviceProvider,
@@ -34,24 +37,68 @@ public class EventStoreService : BackgroundService
             using var scope = _serviceProvider.CreateScope();
             var store = scope.ServiceProvider.GetRequiredService<IDocumentStore>();
 
-            // Apply database changes with a timeout
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, stoppingToken);
-            
-            try
+            // Apply database changes with a timeout and retry logic
+            for (int attempt = 1; attempt <= MaxRetryAttempts; attempt++)
             {
-                await store.Storage.ApplyAllConfiguredChangesToDatabaseAsync();
-                _logger.LogInformation("Database schema applied successfully");
-            }
-            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-            {
-                _logger.LogWarning("Database schema application timed out after 30 seconds");
-                return;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error applying database schema changes");
-                return;
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, stoppingToken);
+                
+                try
+                {
+                    await store.Storage.ApplyAllConfiguredChangesToDatabaseAsync();
+                    _logger.LogInformation("Database schema applied successfully");
+                    
+                    // If we reach here, the connection was successful
+                    break;
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    _logger.LogWarning("Database schema application timed out after 30 seconds");
+                    
+                    if (attempt < MaxRetryAttempts)
+                    {
+                        _logger.LogInformation("Retrying database connection (Attempt {Attempt} of {MaxAttempts})...", 
+                            attempt, MaxRetryAttempts);
+                        await Task.Delay(RetryDelayMilliseconds, stoppingToken);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Max retry attempts reached. Continuing application without PostgreSQL event store.");
+                        return;
+                    }
+                }
+                catch (PostgresException pgEx)
+                {
+                    _logger.LogError(pgEx, "PostgreSQL error applying database schema changes: {Message}", pgEx.Message);
+                    
+                    if (attempt < MaxRetryAttempts)
+                    {
+                        _logger.LogInformation("Retrying database connection (Attempt {Attempt} of {MaxAttempts})...", 
+                            attempt, MaxRetryAttempts);
+                        await Task.Delay(RetryDelayMilliseconds, stoppingToken);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Max retry attempts reached. Continuing application without PostgreSQL event store.");
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error applying database schema changes");
+                    
+                    if (attempt < MaxRetryAttempts)
+                    {
+                        _logger.LogInformation("Retrying database connection (Attempt {Attempt} of {MaxAttempts})...", 
+                            attempt, MaxRetryAttempts);
+                        await Task.Delay(RetryDelayMilliseconds, stoppingToken);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Max retry attempts reached. Continuing application without PostgreSQL event store.");
+                        return;
+                    }
+                }
             }
 
             // Get the daemon and start it
@@ -79,11 +126,13 @@ public class EventStoreService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error starting or running the event daemon");
+                _logger.LogInformation("Application will continue running without event store functionality");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in Event Store Service");
+            _logger.LogInformation("Application will continue running without event store functionality");
         }
     }
 }

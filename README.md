@@ -85,9 +85,11 @@ The application comes with pre-seeded sample data including:
 The application implements resilient error handling for database connections:
 
 - **Graceful Degradation**: Falls back to SQL Server for read operations when PostgreSQL is unavailable
-- **Error Handling**: Comprehensive error handling in the EventStoreService
+- **Enhanced Error Handling**: Comprehensive error handling in the EventStoreService with retry logic and specific PostgreSQL exception handling
+- **Retry Mechanism**: Configurable retry attempts and delay between retries for PostgreSQL connections
 - **Command Timeout**: Configurable command timeout to prevent long waits during connection attempts
 - **Auto-Create Schema**: Automatic schema creation for PostgreSQL when the database becomes available
+- **Continuous Operation**: Application continues to function with full capabilities even when PostgreSQL is unavailable
 
 ## License
 

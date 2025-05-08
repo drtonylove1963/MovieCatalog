@@ -71,6 +71,9 @@ public static class DependencyInjection
         // until PostgreSQL connection issues are resolved
         services.AddScoped<IMovieReadRepository, TempMovieReadRepository>();
         
+        // Register Actor read repository
+        services.AddScoped<IActorReadRepository, ActorReadRepository>();
+        
         // Register the EventStoreService
         services.AddHostedService<EventStoreService>();
 

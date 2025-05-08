@@ -3,8 +3,13 @@ namespace MovieCatalog.Api.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MovieCatalog.Api.Dtos;
-using MovieCatalog.Domain.Aggregates.ActorAggregate;
-using MovieCatalog.Domain.Repositories;
+using MovieCatalog.Application.Actors.Commands.CreateActor;
+using MovieCatalog.Application.Actors.Commands.DeleteActor;
+using MovieCatalog.Application.Actors.Commands.UpdateActor;
+using MovieCatalog.Application.Actors.Queries.Common;
+using MovieCatalog.Application.Actors.Queries.GetActorById;
+using MovieCatalog.Application.Actors.Queries.GetActorsList;
+using MovieCatalog.Application.Common.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -12,43 +17,36 @@ using System.Threading.Tasks;
 [Route("api/[controller]")]
 public class ActorsController : ControllerBase
 {
-    private readonly IActorRepository _actorRepository;
+    private readonly IMediator _mediator;
 
-    public ActorsController(IActorRepository actorRepository)
+    public ActorsController(IMediator mediator)
     {
-        _actorRepository = actorRepository;
+        _mediator = mediator;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ActorResponseDto>>> GetActors()
+    public async Task<ActionResult<PaginatedList<ActorListItemDto>>> GetActors(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null)
     {
-        var actors = await _actorRepository.GetAllAsync();
-        var result = actors.Select(a => new ActorResponseDto
+        var result = await _mediator.Send(new GetActorsListQuery
         {
-            Id = a.Id,
-            Name = a.Name,
-            DateOfBirth = a.DateOfBirth,
-            Biography = a.Biography
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SearchTerm = searchTerm
         });
 
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ActorResponseDto>> GetActor(Guid id)
+    public async Task<ActionResult<ActorDto>> GetActor(Guid id)
     {
-        var actor = await _actorRepository.GetByIdAsync(id);
+        var result = await _mediator.Send(new GetActorByIdQuery { Id = id });
         
-        if (actor == null)
+        if (result == null)
             return NotFound();
-
-        var result = new ActorResponseDto
-        {
-            Id = actor.Id,
-            Name = actor.Name,
-            DateOfBirth = actor.DateOfBirth,
-            Biography = actor.Biography
-        };
 
         return Ok(result);
     }
@@ -56,14 +54,14 @@ public class ActorsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Guid>> CreateActor([FromBody] CreateActorDto dto)
     {
-        var actorId = Guid.NewGuid();
-        var actor = new Actor(
-            actorId,
-            dto.Name,
-            dto.DateOfBirth,
-            dto.Biography);
+        var command = new CreateActorCommand
+        {
+            Name = dto.Name,
+            DateOfBirth = dto.DateOfBirth,
+            Biography = dto.Biography
+        };
 
-        await _actorRepository.AddAsync(actor);
+        var actorId = await _mediator.Send(command);
 
         return CreatedAtAction(nameof(GetActor), new { id = actorId }, actorId);
     }
@@ -71,18 +69,15 @@ public class ActorsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> UpdateActor(Guid id, [FromBody] UpdateActorDto dto)
     {
-        var actor = await _actorRepository.GetByIdAsync(id);
-        
-        if (actor == null)
-            return NotFound();
+        var command = new UpdateActorCommand
+        {
+            Id = id,
+            Name = dto.Name,
+            DateOfBirth = dto.DateOfBirth,
+            Biography = dto.Biography
+        };
 
-        var updatedActor = new Actor(
-            id,
-            dto.Name,
-            dto.DateOfBirth,
-            dto.Biography);
-
-        await _actorRepository.UpdateAsync(updatedActor);
+        await _mediator.Send(command);
 
         return NoContent();
     }
@@ -90,12 +85,12 @@ public class ActorsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteActor(Guid id)
     {
-        var actor = await _actorRepository.GetByIdAsync(id);
-        
-        if (actor == null)
-            return NotFound();
+        var command = new DeleteActorCommand
+        {
+            Id = id
+        };
 
-        await _actorRepository.DeleteAsync(id);
+        await _mediator.Send(command);
 
         return NoContent();
     }

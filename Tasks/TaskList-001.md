@@ -2,12 +2,35 @@
 
 ## Tasks
 
+### Current Task In Progress
+- [✅] Complete the implementation of command and query handlers
+  - [x] Implement Actor commands (Create, Update, Delete)
+  - [x] Implement Actor queries (GetById, GetList)
+  - [x] Create ActorReadModel and ActorReadRepository
+  - [x] Update ActorsController to use MediatR pattern
+  - [x] Register ActorReadRepository in DI container
+  - [ ] Implement Genre commands (Create, Update, Delete)
+  - [ ] Implement Genre queries (GetById, GetList)
+  - [ ] Create GenreReadModel and GenreReadRepository
+  - [ ] Update GenresController to use MediatR pattern
+  - [ ] Register GenreReadRepository in DI container
+  - [ ] Test all command and query handlers
+
+### Next Steps
+- [ ] Implement remaining API controllers for all aggregates
+- [ ] Add comprehensive validation rules for all commands
+- [ ] Set up proper error handling and response formatting
+- [ ] Implement unit and integration tests for core functionality
+
+### Completed Tasks
 - [✅] Re-enable event sourcing with Marten
   - [x] Implement temporary SQL Server-based repository for read operations
   - [x] Configure resilient Marten settings in DependencyInjection.cs
   - [x] Enhance error handling in EventStoreService
   - [x] Create new PostgreSQL user for authentication
   - [x] Resolve remaining PostgreSQL authentication issues with resilient fallback
+
+### Future Tasks
 - [ ] Re-enable asynchronous processing with RabbitMQ
 - [ ] Add authentication and authorization
 - [ ] Implement more advanced search and filtering capabilities

@@ -2,8 +2,14 @@ namespace MovieCatalog.Api.Controllers;
 
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using MovieCatalog.Domain.Aggregates.GenreAggregate;
-using MovieCatalog.Domain.Repositories;
+using MovieCatalog.Api.Dtos;
+using MovieCatalog.Application.Common.Models;
+using MovieCatalog.Application.Genres.Commands.CreateGenre;
+using MovieCatalog.Application.Genres.Commands.DeleteGenre;
+using MovieCatalog.Application.Genres.Commands.UpdateGenre;
+using MovieCatalog.Application.Genres.Queries.Common;
+using MovieCatalog.Application.Genres.Queries.GetGenreById;
+using MovieCatalog.Application.Genres.Queries.GetGenresList;
 using System;
 using System.Threading.Tasks;
 
@@ -11,41 +17,36 @@ using System.Threading.Tasks;
 [Route("api/[controller]")]
 public class GenresController : ControllerBase
 {
-    private readonly IGenreRepository _genreRepository;
+    private readonly IMediator _mediator;
 
-    public GenresController(IGenreRepository genreRepository)
+    public GenresController(IMediator mediator)
     {
-        _genreRepository = genreRepository;
+        _mediator = mediator;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<GenreDto>>> GetGenres()
+    public async Task<ActionResult<PaginatedList<GenreListItemDto>>> GetGenres(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null)
     {
-        var genres = await _genreRepository.GetAllAsync();
-        var result = genres.Select(g => new GenreDto
+        var result = await _mediator.Send(new GetGenresListQuery
         {
-            Id = g.Id,
-            Name = g.Name,
-            Description = g.Description
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SearchTerm = searchTerm
         });
 
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<GenreDto>> GetGenre(Guid id)
+    public async Task<ActionResult<MovieCatalog.Application.Genres.Queries.Common.GenreDto>> GetGenre(Guid id)
     {
-        var genre = await _genreRepository.GetByIdAsync(id);
+        var result = await _mediator.Send(new GetGenreByIdQuery { Id = id });
         
-        if (genre == null)
+        if (result == null)
             return NotFound();
-
-        var result = new GenreDto
-        {
-            Id = genre.Id,
-            Name = genre.Name,
-            Description = genre.Description
-        };
 
         return Ok(result);
     }
@@ -53,13 +54,13 @@ public class GenresController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Guid>> CreateGenre([FromBody] CreateGenreDto dto)
     {
-        var genreId = Guid.NewGuid();
-        var genre = new Genre(
-            genreId,
-            dto.Name,
-            dto.Description);
+        var command = new CreateGenreCommand
+        {
+            Name = dto.Name,
+            Description = dto.Description
+        };
 
-        await _genreRepository.AddAsync(genre);
+        var genreId = await _mediator.Send(command);
 
         return CreatedAtAction(nameof(GetGenre), new { id = genreId }, genreId);
     }
@@ -67,17 +68,14 @@ public class GenresController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> UpdateGenre(Guid id, [FromBody] UpdateGenreDto dto)
     {
-        var genre = await _genreRepository.GetByIdAsync(id);
-        
-        if (genre == null)
-            return NotFound();
+        var command = new UpdateGenreCommand
+        {
+            Id = id,
+            Name = dto.Name,
+            Description = dto.Description
+        };
 
-        var updatedGenre = new Genre(
-            id,
-            dto.Name,
-            dto.Description);
-
-        await _genreRepository.UpdateAsync(updatedGenre);
+        await _mediator.Send(command);
 
         return NoContent();
     }
@@ -85,32 +83,13 @@ public class GenresController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteGenre(Guid id)
     {
-        var genre = await _genreRepository.GetByIdAsync(id);
-        
-        if (genre == null)
-            return NotFound();
+        var command = new DeleteGenreCommand
+        {
+            Id = id
+        };
 
-        await _genreRepository.DeleteAsync(id);
+        await _mediator.Send(command);
 
         return NoContent();
     }
-}
-
-public class GenreDto
-{
-    public Guid Id { get; set; }
-    public required string Name { get; set; }
-    public required string Description { get; set; }
-}
-
-public class CreateGenreDto
-{
-    public required string Name { get; set; }
-    public required string Description { get; set; }
-}
-
-public class UpdateGenreDto
-{
-    public required string Name { get; set; }
-    public required string Description { get; set; }
 }

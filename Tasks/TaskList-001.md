@@ -9,11 +9,11 @@
   - [x] Create ActorReadModel and ActorReadRepository
   - [x] Update ActorsController to use MediatR pattern
   - [x] Register ActorReadRepository in DI container
-  - [ ] Implement Genre commands (Create, Update, Delete)
-  - [ ] Implement Genre queries (GetById, GetList)
-  - [ ] Create GenreReadModel and GenreReadRepository
-  - [ ] Update GenresController to use MediatR pattern
-  - [ ] Register GenreReadRepository in DI container
+  - [x] Implement Genre commands (Create, Update, Delete)
+  - [x] Implement Genre queries (GetById, GetList)
+  - [x] Create GenreReadModel and GenreReadRepository
+  - [x] Update GenresController to use MediatR pattern
+  - [x] Register GenreReadRepository in DI container
   - [ ] Test all command and query handlers
 
 ### Next Steps

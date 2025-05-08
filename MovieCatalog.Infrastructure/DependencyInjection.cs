@@ -74,6 +74,9 @@ public static class DependencyInjection
         // Register Actor read repository
         services.AddScoped<IActorReadRepository, ActorReadRepository>();
         
+        // Register Genre read repository
+        services.AddScoped<IGenreReadRepository, GenreReadRepository>();
+        
         // Register the EventStoreService
         services.AddHostedService<EventStoreService>();
 
